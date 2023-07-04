@@ -3,6 +3,10 @@ const app = express()
 import fetch from 'node-fetch'
 import cors from 'cors'
 import agoraToken from 'agora-token'
+import pkg from 'agora-access-token';
+const {RtcTokenBuilder, RtmTokenBuilder, RtcRole, RtmRole} = pkg;
+
+
 import User from './models/User.js'
 import mongoose from 'mongoose';
 const dbUrl = "mongodb+srv://nagarjuna:test@cluster0.h7xyfty.mongodb.net/users?retryWrites=true&w=majority"; const connectionParams = {
@@ -10,14 +14,7 @@ const dbUrl = "mongodb+srv://nagarjuna:test@cluster0.h7xyfty.mongodb.net/users?r
 };
 const users = User.find()
 
-// mongoose.connect(dbUrl, connectionParams).then(
-//   () => {
-//     console.info("db connected");
-//   }
-// ).catch(
-//   (e) => {
-//     console.log("error occues", e);
-//   })
+
 
 const { ChatTokenBuilder } = agoraToken
 
@@ -36,19 +33,25 @@ const chatRegisterURL = "https://a41.chat.agora.io/41975973/1139922/users"
 app.use(cors())
 app.use(express.json())
 
+
 app.post('/login', async (req, res) => {
   await mongoose.connect(dbUrl, connectionParams).then(async () => {
     console.log(users)
     const user = await User.findOne({ account: req.body.account })
+    const all = await User.find()
     if (user && user.password === req.body.password) {
+      const appToken = ChatTokenBuilder.buildAppToken(appId, appCertificate, expirationInSeconds);
+
       const userToken = ChatTokenBuilder.buildUserToken(appId, appCertificate, user.userUuid, expirationInSeconds);
       res
         .status(200)
         .json({
           code: "RES_OK",
           expireTimestamp: expirationInSeconds,
-          chatUsername: user,
+          chatUsername: req.body.account,
           accessToken: userToken, // agorachatAuthToken
+          appToken:appToken ,
+          users:all
 
         })
     } else {
@@ -66,13 +69,14 @@ app.post('/register', async (req, res) => {
 
     const account = req.body.account
     const password = req.body.password
+    const nickname = req.body.nickname
     // const chatUsername = "<User-defined username>"
     // const chatPassword = "<User-defined password>"
     // const ChatNickname = "<User-defined nickname>"
     const chatUsername = account
     const chatPassword = password
-    const ChatNickname = account
-    
+    const ChatNickname = nickname
+
 
     const body = { 'username': chatUsername, 'password': chatPassword, 'nickname': ChatNickname };
     const appToken = ChatTokenBuilder.buildAppToken(appId, appCertificate, expirationInSeconds);
@@ -106,6 +110,47 @@ app.post('/register', async (req, res) => {
 
 
 })
+
+
+var role = RtcRole.PUBLISHER
+var expirationTimeInSeconds = 86400
+
+var generateRtcToken = function (req, resp) {
+  var currentTimestamp = Math.floor(Date.now() / 1000)
+  var privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds
+  var channelName = req.query.channelName;
+  // use 0 if uid is not specified
+  var uid = req.query.uid || 0
+  if (!channelName) {
+      return resp.status(400).json({ 'error': 'channel name is required' }).send();
+  }
+  // if (!uid) {
+  //     return resp.status(400).json({ 'error': 'uid  is required' }).send();
+  // }
+
+
+  var key = RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channelName, uid, role, privilegeExpiredTs);
+
+  resp.header("Access-Control-Allow-Origin", "*")
+  //resp.header("Access-Control-Allow-Origin", "http://ip:port")
+  return resp.json({ 'token': key }).send();
+};
+var generateRtmToken = function (req, resp) {
+  var currentTimestamp = Math.floor(Date.now() / 1000)
+  var privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds
+  var account = req.query.account;
+  if (!account) {
+      return resp.status(400).json({ 'error': 'account is required' }).send();
+  }
+
+  var key = RtmTokenBuilder.buildToken(appID, appCertificate, account, RtmRole, privilegeExpiredTs);
+
+  resp.header("Access-Control-Allow-Origin", "*")
+  //resp.header("Access-Control-Allow-Origin", "http://ip:port")
+  return resp.json({ 'key': key }).send();
+};
+app.get('/rtcToken', generateRtcToken);
+app.get('/rtmToken', generateRtmToken);
 
 app.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
