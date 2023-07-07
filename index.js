@@ -18,8 +18,10 @@ const users = User.find()
 
 const { ChatTokenBuilder } = agoraToken
 
-const hostname = '127.0.0.1'
-const port = 3006
+// const hostname = '0.0.0.0'
+// const port = 3006
+const port = process.env.PORT || 3006;  
+
 
 // Get the appId and appCertificate from the agora console
 const appId = "6fa37398a5be49d187db7c4f060d8530";
@@ -111,6 +113,12 @@ app.post('/register', async (req, res) => {
 
 })
 
+app.get('/hi',(req,res)=>{
+  console.log(req)
+  res.send({name:"nagarjuna"})
+
+})
+
 
 var role = RtcRole.PUBLISHER
 var expirationTimeInSeconds = 86400
@@ -153,5 +161,5 @@ app.get('/rtcToken', generateRtcToken);
 app.get('/rtmToken', generateRtmToken);
 
 app.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+  console.log(`Server running at http://localhost:${port}/`);
 });
