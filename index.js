@@ -160,6 +160,6 @@ var generateRtmToken = function (req, resp) {
 app.get('/rtcToken', generateRtcToken);
 app.get('/rtmToken', generateRtmToken);
 
-app.listen(port, hostname, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${port}/`);
 });
