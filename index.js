@@ -151,7 +151,7 @@ var generateRtmToken = function (req, resp) {
       return resp.status(400).json({ 'error': 'account is required' }).send();
   }
 
-  var key = RtmTokenBuilder.buildToken(appID, appCertificate, account, RtmRole, privilegeExpiredTs);
+  var key = RtmTokenBuilder.buildToken(appId, appCertificate, account, RtmRole, privilegeExpiredTs);
 
   resp.header("Access-Control-Allow-Origin", "*")
   //resp.header("Access-Control-Allow-Origin", "http://ip:port")
